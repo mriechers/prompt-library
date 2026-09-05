@@ -1,6 +1,7 @@
 ---
 last_validated: 2026-09-05
 validated_against: Claude Opus 5
+description: Turns rough prompts into precise, testable instructions — expands, audits, tightens, or interrogates a prompt, but never runs it.
 recommended_effort: high
 status: current
 ---

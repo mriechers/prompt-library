@@ -154,7 +154,10 @@ Only after explicit approval, and only the approved items:
 
 1. Apply the approved edits to `prompts/$ARGUMENTS`.
 2. Update the header: set `last_validated` to today's date and `validated_against`
-   to the model reviewed against. Set `status: current`.
+   to the model reviewed against. Set `status: current`. If the approved edits
+   changed what the prompt *does*, update `description` to match — it's the line
+   that shows up in the README's index table. Don't touch it for wording-level
+   edits. The README itself regenerates on push; you don't need to edit it here.
 3. Append an entry to `CHANGELOG.md` under that prompt's section, newest first:
 
    ```
