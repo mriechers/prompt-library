@@ -11,6 +11,7 @@ checked and against which model:
 ---
 last_validated: 2026-09-05
 validated_against: Claude Opus 5
+recommended_effort: high
 status: current
 ---
 ```
@@ -18,6 +19,11 @@ status: current
 `status` is `current` or `stale`. Mark a prompt `stale` when a new model ships and you
 haven't re-checked it yet — the point is that opening the file tells you where it stands,
 instead of you having to remember.
+
+`recommended_effort` is a starting point to copy into the project description, not a
+constraint. Prompt bodies stay model-agnostic, since the model and effort get chosen
+per-request — so recommendations live in the header and the project description, never in
+the prompt text itself.
 
 `CHANGELOG.md` logs what changed in each prompt and why.
 
