@@ -1,0 +1,15 @@
+# Fails the build if prompt-architect.md was edited without re-running the sync,
+# so the expand-prompt skill can never quietly ship a stale copy of the base prompt.
+name: base-prompt-sync
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Base prompt copy is in sync
+        run: bash scripts/sync-base-prompt.sh --check
