@@ -26,3 +26,9 @@ plugin — it probes first and skips with a one-line reason when Obsidian isn't 
 which is the normal case in a cloud session. No vault filesystem path appears anywhere
 in the skill. The API key comes from `OBSIDIAN_LOCAL_REST_API_KEY`, or from the
 machine-ops secrets rail when that isn't set.
+
+Each run also appends one line to `~/prompt-library-notes/runs.jsonl` — the mode used,
+how many revision rounds it took, and which version of the base prompt was in force.
+That last field is the point: it ties outcomes to a specific `last_validated` date, so
+`/review-prompt` has evidence to act on rather than impressions. Modes and counts only;
+the script takes no free-text parameter, so no prompt content can reach the log.
