@@ -33,3 +33,11 @@ Run `/review-prompt <filename>` in Claude Code from this repo. It reads the head
 searches for prompting guidance published since that date, and proposes changes for you
 to approve one at a time. On approval it applies the edits, bumps the header, and appends
 a CHANGELOG entry.
+
+Before searching the web it consults Anthropic's own bundled prompting reference (the
+`claude-api` skill's `prompt-audit.md`) — a better source than search results, and one
+that carries a keep list of what *not* to strip.
+
+Each run appends a line to `~/prompt-library-notes/runs.jsonl` recording which changes
+you accepted and rejected. That log lives outside the repo on purpose; the schema and
+the reasoning behind it are in `docs/run-log-schema.md`.

@@ -3,7 +3,7 @@
 Dated entries per prompt, newest first. Each entry records **what changed and why** —
 the "why" is the part `git log` won't give you back in six months.
 
-Keep entries to two or three lines.
+Keep entries short — but never at the cost of the reasoning.
 
 ---
 
