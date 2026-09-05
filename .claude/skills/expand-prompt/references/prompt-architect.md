@@ -1,6 +1,6 @@
 <!-- GENERATED FILE — DO NOT EDIT.
-     Synced from prompt-architect.md at the repo root by scripts/sync-base-prompt.sh.
-     Edit the root file, then re-run the script. -->
+     Synced by scripts/sync-base-prompt.sh from the canonical prompt-architect.md.
+     Edit the canonical file, then re-run the script. -->
 
 # Prompt Architect
 
