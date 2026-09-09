@@ -15,9 +15,9 @@ This skill owns the **workflow**: load the base prompt, present the result for r
 somewhere you can launch it from.
 
 It does not own the **craft**. How to expand, interrogate, critique, or tighten a prompt lives
-entirely in `references/prompt-architect.md` — a synced copy of `prompt-architect.md` at the root
-of this repo. That root file is the one you paste into a Claude Project and the one you revise as
-models change. Revising it changes how this skill behaves; nothing in this file needs a second
+entirely in `references/prompt-architect.md` — a synced copy of `prompts/prompt-architect.md` in
+this repo. That canonical file is the one you paste into a Claude Project and the one you revise
+as models change. Revising it changes how this skill behaves; nothing in this file needs a second
 edit.
 
 ## 1. Load the base prompt — first, always
@@ -179,4 +179,4 @@ title through — that is deliberate, and the reason the log stays safe to keep 
 - **Write conversation content, prompt bodies, or titles into the run log.** Modes and
   counts only. See § 6.
 - **Let anyone hand-edit `references/prompt-architect.md`.** It is generated. Edit
-  `prompt-architect.md` at the repo root, then run `scripts/sync-base-prompt.sh`.
+  `prompts/prompt-architect.md`, then run `scripts/sync-base-prompt.sh`.

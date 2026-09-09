@@ -35,10 +35,6 @@ find_src() {
   return 1
 }
 
-BANNER='<!-- GENERATED FILE — DO NOT EDIT.
-     Synced by scripts/sync-base-prompt.sh from the canonical prompt-architect.md.
-     Edit the canonical file, then re-run the script. -->'
-
 MODE="write"
 case "${1:-}" in
   --check) MODE="check" ;;
@@ -52,6 +48,12 @@ SRC="$(find_src)" || {
   exit 2
 }
 REL_SRC="${SRC#"$ROOT/"}"
+
+# Defined here, after the source is resolved, so the banner names the file this run
+# actually read rather than a guess made before we looked.
+BANNER="<!-- GENERATED FILE — DO NOT EDIT.
+     Synced by scripts/sync-base-prompt.sh from $REL_SRC.
+     Edit that file, then re-run the script. -->"
 
 # One renderer for both modes, so "what --check compares against" and "what a write
 # produces" can never be two different things.

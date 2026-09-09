@@ -1,0 +1,113 @@
+# Keeps the prompt index table in README.md in sync with the files in prompts/.
+#
+# HOW A GITHUB ACTIONS WORKFLOW IS PUT TOGETHER (for the human reading this later)
+#
+#   on:    the events that start this file running
+#   jobs:  independent units of work, each on its own fresh virtual machine
+#   steps: the ordered commands inside a job
+#
+# Each job gets a clean machine. Nothing carries over between jobs unless you
+# explicitly pass it, which is why the two jobs below each check out the repo.
+#
+# THE TWO-JOB DESIGN
+#
+#   check   runs on pull requests. Verifies the table matches prompts/ and fails
+#           the PR if not, so the README you review is the README you merge.
+#           It never writes anything.
+#
+#   update  runs after a push to main. Regenerates the table and commits the
+#           result. This is the safety net for changes that never went through a
+#           PR — a direct commit to main, or an edit made in the GitHub web UI.
+#
+# The check job is the one that keeps the repo honest; the update job is the one
+# that means you never have to think about it.
+
+name: Prompt index
+
+on:
+  push:
+    branches: [main]
+    # `paths` limits the workflow to changes that could actually affect the
+    # table. A commit touching only CHANGELOG.md won't spin up a runner.
+    paths:
+      - 'prompts/**'
+      - 'README.md'
+      - 'scripts/generate_prompt_index.py'
+      - '.github/workflows/prompt-index.yml'
+  pull_request:
+    paths:
+      - 'prompts/**'
+      - 'README.md'
+      - 'scripts/generate_prompt_index.py'
+      - '.github/workflows/prompt-index.yml'
+  # Lets you run the workflow by hand from the Actions tab. Useful after editing
+  # the generator, when you want to regenerate without making a commit first.
+  workflow_dispatch:
+
+# If two pushes land close together, cancel the older run rather than letting two
+# jobs try to commit to main at the same time.
+concurrency:
+  group: prompt-index-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # Only on pull requests. `github.event_name` is the event that triggered this
+    # run — one of the keys under `on:` above.
+    if: github.event_name == 'pull_request'
+    name: Check index is up to date
+    runs-on: ubuntu-latest
+    # No `permissions` block granting write access: this job cannot modify the
+    # repo even if something goes wrong. Least privilege, and it costs nothing.
+    steps:
+      - uses: actions/checkout@v4
+
+      # ubuntu-latest ships with Python 3 preinstalled, and the script has no
+      # dependencies, so there is no setup-python step and no pip install.
+      - name: Verify README matches prompts/
+        run: python3 scripts/generate_prompt_index.py --check
+
+  update:
+    # Everything that is not a pull request: pushes to main, and manual runs.
+    if: github.event_name != 'pull_request'
+    name: Regenerate index
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for the `git push` at the end. Workflow permissions default to
+      # read-only, so a job that writes to the repo has to ask for it explicitly.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        # actions/checkout stores a token in the local git config by default,
+        # which is what lets the push step below authenticate. Stated here rather
+        # than left implicit, because turning it off is a common recipe copy that
+        # then breaks the push with a confusing 403.
+        with:
+          persist-credentials: true
+
+      - name: Regenerate README index
+        run: python3 scripts/generate_prompt_index.py
+
+      - name: Commit if the table changed
+        run: |
+          # `git diff --quiet` exits 0 when there are no changes. Checking first
+          # means we don't attempt an empty commit, which git rejects and which
+          # would fail the job for no reason.
+          if git diff --quiet -- README.md; then
+            echo "Index already current — nothing to commit."
+            exit 0
+          fi
+
+          # The bot identity GitHub uses for its own automated commits. Any name
+          # and email work; this one makes the commit render with the Actions
+          # avatar so it reads as machine-authored at a glance.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add README.md
+          git commit -m "Update prompt index"
+
+          # Worth knowing: a push made with the built-in GITHUB_TOKEN does NOT
+          # trigger other workflows. That is what stops this job's own commit to
+          # main from starting the workflow again in an endless loop.
+          git push
