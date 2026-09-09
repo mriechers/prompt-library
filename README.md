@@ -23,6 +23,7 @@ instructions. Everything else here exists to keep them honest.
 
 | Prompt | What it does | Status | Last validated | Against |
 |---|---|---|---|---|
+| [Prompt Architect](prompts/prompt-architect.md) | Turns rough prompts into precise, testable instructions — expands, audits, tightens, or interrogates a prompt, but never runs it. | current | 2026-09-05 | Claude Opus 5 |
 
 <!-- END PROMPT INDEX -->
 
