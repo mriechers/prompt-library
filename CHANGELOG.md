@@ -10,6 +10,28 @@ Keep entries short — but never at the cost of the reasoning.
 
 ## Repository
 
+### 2026-09-09 — expand-prompt skill, and its README integration
+Merged `main` into the expand-prompt branch and resolved the README conflict by
+integrating the skill into the rewritten README rather than appending to it — the repo
+now holds prompts *and* two tools that read them, so the structure names both.
+
+Three fixes the merge surfaced, none of which the branch could have known about:
+the skill shipped a copy of `prompt-architect.md` synced before PR #1, so it carried
+exactly the guidance PR #1 removed ("reasoning models", the closing-recap advice) and
+lacked what PR #1 added — re-ran the sync; `SKILL.md` still named the repo root as the
+canonical location, which would send an editor to create a competing file — corrected
+to `prompts/`; and `docs/run-log-schema.md` documented only review records while
+`log-run.sh` was already writing a second shape into the same file — added a `kind`
+discriminator and an expansion-record section.
+
+Also made the sync banner name the source file it actually read, instead of stating a
+path resolved before the lookup happens.
+
+Why the stale-copy fix matters most: the skill's own CI caught it, which is the design
+working. But had it merged, the skill would have operated on the outdated prompt while
+the repo's index reported the prompt as `current` — the precise drift both PRs exist to
+prevent.
+
 ### 2026-09-05 — README rewrite and generated prompt index
 Rewrote the README to lead with what the repo is for (prompts that tell you whether
 they're still good) instead of opening on file conventions. Added a generated index of

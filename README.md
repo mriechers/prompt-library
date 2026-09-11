@@ -7,9 +7,8 @@ Most saved prompts rot quietly. You paste one into a Claude project, it works, a
 eighteen months later it's still there — full of advice that made sense for a model
 that has since been retired, and you have no way to tell by looking. This repo is the
 fix: every prompt carries a header recording **when it was last checked and against
-which model**, a changelog records **what changed and why**, and a slash command
-re-checks a prompt against current published guidance and walks you through the
-proposed edits one at a time.
+which model**, a changelog records **what changed and why**, and the tooling here
+re-checks those prompts and puts them to work.
 
 The prompts themselves are written to be pasted into a Claude project's custom
 instructions. Everything else here exists to keep them honest.
@@ -28,8 +27,8 @@ instructions. Everything else here exists to keep them honest.
 <!-- END PROMPT INDEX -->
 
 This table is generated from the files in [`prompts/`](prompts/) — see
-[Keeping the index current](#keeping-the-index-current) below. Don't edit it by hand;
-your changes will be overwritten on the next run.
+[Keeping things honest](#keeping-things-honest) below. Don't edit it by hand; your
+changes will be overwritten on the next run.
 
 ---
 
@@ -69,55 +68,101 @@ the project description — never in the prompt text itself.
 
 ---
 
-## Re-checking a prompt
+## The tools
 
-Run `/review-prompt <filename>` in Claude Code from this repo. It reads the header,
-searches for prompting guidance published since that date, and proposes changes for you
-to approve one at a time. On approval it applies the edits, bumps the header, and
-appends a CHANGELOG entry.
+Two Claude Code tools read the prompts in this repo. Neither carries its own
+prompt-engineering guidance — that lives in the prompt files, which is what makes
+revising a prompt the single lever that changes how both behave.
+
+### `/review-prompt` — re-check a prompt against current guidance
+
+Run `/review-prompt <filename>` from this repo. It reads the header, searches for
+prompting guidance published since that date, and proposes changes for you to approve
+one at a time. On approval it applies the edits, bumps the header, and appends a
+CHANGELOG entry.
 
 Before searching the web it consults Anthropic's own bundled prompting reference (the
 `claude-api` skill's `prompt-audit.md`) — a better source than search results, and one
 that carries a keep list of what *not* to strip.
 
-Each run appends a line to `~/prompt-library-notes/runs.jsonl` recording which changes
-you accepted and rejected. That log lives outside the repo on purpose; the schema and
-the reasoning behind it are in [`docs/run-log-schema.md`](docs/run-log-schema.md).
+### `/expand-prompt` — turn a rough prompt into a precise one
+
+[`.claude/skills/expand-prompt/`](.claude/skills/expand-prompt/) expands, interrogates,
+critiques, or tightens a rough prompt, then saves the result somewhere you can launch
+it from. It owns only the workflow; the craft comes entirely from
+`prompts/prompt-architect.md`.
+
+A skill is installed as a self-contained directory and can't read a file outside its
+own folder, so it carries a synced copy at
+`.claude/skills/expand-prompt/references/prompt-architect.md`. **That copy is
+generated — never edit it.** Edit the canonical prompt, then re-run the sync:
+
+```bash
+scripts/sync-base-prompt.sh
+```
+
+Output goes to `planning/expanded-prompt-<title>.md`, relative to wherever you run it.
+It also files a copy in the Obsidian inbox, but only when it can reach the vault
+through the [Local REST API](https://github.com/coddingtonbear/obsidian-local-rest-api)
+plugin — it probes first and skips with a one-line reason when Obsidian isn't running,
+which is the normal case in a cloud session. No vault filesystem path appears anywhere
+in the skill. The API key comes from `OBSIDIAN_LOCAL_REST_API_KEY`, or from the
+machine-ops secrets rail when that isn't set.
+
+### What both tools write to the run log
+
+Each run appends one line to `~/prompt-library-notes/runs.jsonl` — `/review-prompt`
+records which changes you accepted and rejected, `/expand-prompt` records the mode and
+how many revision rounds it took, both tagged with the base prompt's `last_validated`
+date.
+
+That last part is the point: it ties an outcome to a *version* of a prompt, so a run of
+expansions that consistently needs three revisions is evidence about that version
+rather than an impression. Labels and counts only — neither tool has a free-text
+parameter, so no prompt content can reach the log.
+
+The log lives outside the repo on purpose; the schema and the reasoning behind it are
+in [`docs/run-log-schema.md`](docs/run-log-schema.md).
 
 ---
 
-## Keeping the index current
+## Keeping things honest
 
-The prompt table above is generated, not hand-maintained. A list you have to remember
-to update is a list that goes stale — the same failure mode the headers exist to
-prevent, one level up.
+Two things here are generated rather than maintained by hand, and each has a CI check
+that fails the build when the generated copy drifts from its source. The reasoning is
+the same in both cases: anything you have to *remember* to update goes stale, which is
+the exact failure the `last_validated` headers exist to prevent.
 
-Two pieces do this:
+### The prompt index
 
-**[`scripts/generate_prompt_index.py`](scripts/generate_prompt_index.py)** reads every
-file in `prompts/`, pulls the metadata out of each header, renders the table, and
-splices it into this README between two HTML-comment markers. It only touches the
-region between those markers — the rest of the README stays hand-written. No
-dependencies, standard library only, so it runs anywhere Python 3 does.
+[`scripts/generate_prompt_index.py`](scripts/generate_prompt_index.py) reads every file
+in `prompts/`, pulls the metadata out of each header, renders the table, and splices it
+into this README between two HTML-comment markers. It only touches the region between
+those markers — the rest of the README stays hand-written. No dependencies, standard
+library only.
 
 ```bash
-python3 scripts/generate_prompt_index.py          # rewrite the table in README.md
+python3 scripts/generate_prompt_index.py           # rewrite the table in README.md
 python3 scripts/generate_prompt_index.py --check   # report drift, change nothing, exit 1 if stale
 ```
 
-**[`.github/workflows/prompt-index.yml`](.github/workflows/prompt-index.yml)** runs it
-for you, in two situations:
+[`.github/workflows/prompt-index.yml`](.github/workflows/prompt-index.yml) runs
+`--check` on pull requests, so the README you review is the README you merge — and
+regenerates the table and commits it after a push to `main`, as a safety net for edits
+made outside a PR.
 
-- **On a pull request** that touches `prompts/`, the workflow runs `--check`. If the
-  table doesn't match the prompt files, the check fails and tells you the command to
-  run. This keeps the README honest *inside* the PR diff, so what gets reviewed is what
-  gets merged.
-- **On a push to `main`**, the workflow regenerates the table and commits the result if
-  anything changed. This is the safety net for edits made outside a PR — committing to
-  `main` directly, or editing a file in the GitHub web UI.
+### The skill's copy of the base prompt
 
-You never have to run the script yourself. It's exposed as a command mostly so you can
-preview the table before pushing.
+[`scripts/sync-base-prompt.sh`](scripts/sync-base-prompt.sh) copies
+`prompts/prompt-architect.md` into the skill.
+[`.github/workflows/base-prompt-sync.yml`](.github/workflows/base-prompt-sync.yml) runs
+`--check`, so editing the canonical prompt without re-running the sync fails the build
+instead of shipping a skill that quietly operates on the old text.
+
+```bash
+scripts/sync-base-prompt.sh           # copy canonical -> skill
+scripts/sync-base-prompt.sh --check   # report drift, change nothing, exit 1 if stale
+```
 
 ---
 
@@ -125,25 +170,33 @@ preview the table before pushing.
 
 ```
 prompts/                          the prompts themselves, one file each
-  prompt-architect.md
-.claude/commands/                 Claude Code slash commands, one file per command
+  prompt-architect.md             canonical — edit this one
+.claude/commands/                 slash commands, one file per command
   review-prompt.md                -> /review-prompt
+.claude/skills/expand-prompt/     the expand-prompt skill
+  SKILL.md                        the workflow
+  references/prompt-architect.md  GENERATED copy — never edit
+  scripts/                        obsidian-put.sh, log-run.sh
 scripts/
   generate_prompt_index.py        builds the index table in this README
+  sync-base-prompt.sh             copies the canonical prompt into the skill
 .github/workflows/
-  prompt-index.yml                runs that script in CI
+  prompt-index.yml                index check + auto-regenerate
+  base-prompt-sync.yml            skill-copy drift check
 docs/
-  run-log-schema.md               the shared format for review run logs
+  run-log-schema.md               the shared format for run logs
 CHANGELOG.md                      what changed in each prompt, and why
 ```
 
 ---
 
-## Adding a prompt
+## Adding or editing a prompt
 
 1. Create `prompts/your-prompt.md` with the frontmatter header above. Set
    `last_validated` to today and `validated_against` to the model you wrote it for.
 2. Give it an H1 heading — that becomes its name in the index table.
 3. Write a one-line `description`. It's the only thing most readers will see.
-4. Add a CHANGELOG entry saying what the prompt is for.
-5. Commit. The index table updates itself.
+4. **If you edited `prompts/prompt-architect.md`, run `scripts/sync-base-prompt.sh`**
+   and commit the regenerated copy. CI fails without it.
+5. Add a CHANGELOG entry saying what the prompt is for, or what changed and why.
+6. Commit. The index table updates itself.
