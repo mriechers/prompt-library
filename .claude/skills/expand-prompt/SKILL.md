@@ -15,10 +15,15 @@ This skill owns the **workflow**: load the base prompt, present the result for r
 somewhere you can launch it from.
 
 It does not own the **craft**. How to expand, interrogate, critique, or tighten a prompt lives
-entirely in `references/prompt-architect.md` — a synced copy of `prompts/prompt-architect.md` in
-this repo. That canonical file is the one you paste into a Claude Project and the one you revise
-as models change. Revising it changes how this skill behaves; nothing in this file needs a second
-edit.
+entirely in `references/prompt-architect.md` — a synced copy of the canonical file in the
+prompt-library repo (https://github.com/mriechers/prompt-library/blob/main/prompts/prompt-architect.md). That file is the one you paste into a Claude Project
+and the one you revise as models change. Revising it changes how this skill behaves; nothing in
+this file needs a second edit.
+
+**Every path in this file is relative to this skill's directory** — the one announced as the base
+directory when the skill loads — never to the working directory. The skill is invoked from other
+repos far more often than from prompt-library itself, so a path like `.claude/skills/expand-prompt/…`
+would resolve nowhere and the vault step would skip for the wrong reason.
 
 ## 1. Load the base prompt — first, always
 
@@ -102,7 +107,7 @@ The vault is reached through the **Obsidian Local REST API**, never through a fi
 it first:
 
 ```bash
-.claude/skills/expand-prompt/scripts/obsidian-put.sh --probe
+"$SKILL_DIR/scripts/obsidian-put.sh" --probe   # SKILL_DIR = this skill's base directory
 ```
 
 | Probe result | What to do |
@@ -117,14 +122,15 @@ so in one line and move on.
 To write, render the note to a temp file and PUT it:
 
 ```bash
-.claude/skills/expand-prompt/scripts/obsidian-put.sh \
+"$SKILL_DIR/scripts/obsidian-put.sh" \
   "0 - INBOX/Expanded Prompt - <short descriptive title>.md" "$TMPFILE"
 ```
 
-The path is **vault-relative** — `0 - INBOX/…`, not `~/Developer/…`. The script handles URL
+The path is **vault-relative** — `0 - INBOX/…`, never a host filesystem path. The script handles URL
 encoding, the self-signed certificate, and resolving `OBSIDIAN_LOCAL_REST_API_KEY` from the
-environment or the machine-ops secrets rail. Honor `$OBSIDIAN_INBOX` as the folder if it is set;
-otherwise use `0 - INBOX`.
+environment or from `get-secret.sh` on `PATH` (the machine-ops secrets rail). It never reaches into
+another repo's checkout to find the rail; if neither source answers, it skips. Honor
+`$OBSIDIAN_INBOX` as the folder if it is set; otherwise use `0 - INBOX`.
 
 The note body is the planning copy from step (a) with Obsidian frontmatter on top:
 
@@ -144,15 +150,16 @@ one you know never got there.
 After the save step, append one line to the run log:
 
 ```bash
-.claude/skills/expand-prompt/scripts/log-run.sh <mode> <revision-rounds>
+"$SKILL_DIR/scripts/log-run.sh" <mode> <revision-rounds>
 ```
 
 - `<mode>` — `default`, `grillme`, `audit`, or `tighten`: whichever § 3 selected.
 - `<revision-rounds>` — how many times they asked for changes in § 4 before accepting.
   Zero is a real and useful value; it means the first pass landed.
 
-The log lives at `~/prompt-library-notes/runs.jsonl`, outside the repo, and the schema is
-`docs/run-log-schema.md`. Its purpose is to tie outcomes to a *version* of the base
+The log is `runs.jsonl` inside `$PROMPT_LIBRARY_NOTES_DIR` — by default a `prompt-library-notes`
+folder in your home directory, outside any repo — and the schema is documented in the prompt-library
+repo at https://github.com/mriechers/prompt-library/blob/main/docs/run-log-schema.md. Its purpose is to tie outcomes to a *version* of the base
 prompt: the script reads `last_validated` from the reference copy's frontmatter, so a
 run of expansions that consistently needs three revision rounds is evidence about
 `prompt-architect.md` at that version — the input `/review-prompt` exists to act on.
@@ -178,5 +185,8 @@ title through — that is deliberate, and the reason the log stays safe to keep 
   a directory.
 - **Write conversation content, prompt bodies, or titles into the run log.** Modes and
   counts only. See § 6.
-- **Let anyone hand-edit `references/prompt-architect.md`.** It is generated. Edit
-  `prompts/prompt-architect.md`, then run `scripts/sync-base-prompt.sh`.
+- **Let anyone hand-edit `references/prompt-architect.md`.** It is generated. Edit the canonical
+  prompt in the prompt-library repo (https://github.com/mriechers/prompt-library/blob/main/prompts/prompt-architect.md), then run that repo's
+  sync script (https://github.com/mriechers/prompt-library/blob/main/scripts/sync-base-prompt.sh).
+- **Address its own scripts from the working directory.** Always `"$SKILL_DIR/scripts/…"`, never
+  `.claude/skills/expand-prompt/scripts/…` — the second form is only true inside prompt-library.

@@ -4,8 +4,9 @@
 #   mode             default | grillme | audit | tighten
 #   revision-rounds  how many times the user asked for changes before accepting (0+)
 #
-# Writes one JSONL line to ~/prompt-library-notes/runs.jsonl — outside the repo, per
-# docs/run-log-schema.md. Append-only; never rewrites earlier lines.
+# Writes one JSONL line to $PROMPT_LIBRARY_NOTES_DIR/runs.jsonl (default: a
+# prompt-library-notes folder under $HOME) — outside any repo, per the schema in
+# prompt-library's docs/run-log-schema.md. Append-only; never rewrites earlier lines.
 #
 # THIS SCRIPT CANNOT LEAK PROMPT CONTENT, BY CONSTRUCTION. Every field is either
 # generated here or drawn from a fixed allowlist — there is no free-text parameter to
@@ -52,6 +53,7 @@ read_validated() {
 VALIDATED="$(read_validated || true)"
 if [ -n "$VALIDATED" ]; then VALIDATED_JSON="\"$VALIDATED\""; else VALIDATED_JSON="null"; fi
 
+# portability-ok: documented default for PROMPT_LIBRARY_NOTES_DIR, not a dependency on another repo
 DIR="${PROMPT_LIBRARY_NOTES_DIR:-$HOME/prompt-library-notes}"
 LOG="$DIR/runs.jsonl"
 

@@ -19,7 +19,9 @@
 #   OBSIDIAN_REST_URL   default https://127.0.0.1:27124  (plugin's HTTPS port)
 #   OBSIDIAN_REST_URL_FALLBACK  default http://127.0.0.1:27123  (plugin's HTTP port)
 #   OBSIDIAN_LOCAL_REST_API_KEY  the bearer token; otherwise resolved via the
-#                       machine-ops secrets rail (get-secret.sh)
+#                       machine-ops secrets rail (get-secret.sh on PATH)
+#   GET_SECRET          override: path to a get-secret.sh-compatible resolver
+#                       (`<resolver> KEY` prints the value). Defaults to PATH lookup.
 #
 # Exit: 0 ok - 1 vault unavailable (skip) - 2 usage - 3 write failed.
 
@@ -38,12 +40,13 @@ resolve_key() {
   if [ -n "${OBSIDIAN_LOCAL_REST_API_KEY:-}" ]; then
     printf '%s' "$OBSIDIAN_LOCAL_REST_API_KEY"; return 0
   fi
-  # Same idiom the other workspace skills use: prefer get-secret.sh on PATH,
-  # fall back to the machine-ops checkout.
+  # The rail is reached by NAME (get-secret.sh on PATH) or by an explicit env
+  # override — never by a path into another repo's checkout. A hardcoded path
+  # to the machine-ops clone is true on one machine and silently dead on the
+  # next; when the rail is absent the right outcome is a clean skip, not a guess.
   local gs
-  gs="$(command -v get-secret.sh || true)"
-  [ -n "$gs" ] || gs="$HOME/Developer/machine-ops/scripts/get-secret.sh"
-  [ -x "$gs" ] || return 1
+  gs="${GET_SECRET:-$(command -v get-secret.sh || true)}"
+  [ -n "$gs" ] && [ -x "$gs" ] || return 1
   "$gs" OBSIDIAN_LOCAL_REST_API_KEY 2>/dev/null
 }
 
