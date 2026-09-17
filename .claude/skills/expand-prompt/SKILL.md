@@ -20,10 +20,13 @@ prompt-library repo (https://github.com/mriechers/prompt-library/blob/main/promp
 and the one you revise as models change. Revising it changes how this skill behaves; nothing in
 this file needs a second edit.
 
-**Every path in this file is relative to this skill's directory** — the one announced as the base
-directory when the skill loads — never to the working directory. The skill is invoked from other
-repos far more often than from prompt-library itself, so a path like `.claude/skills/expand-prompt/…`
-would resolve nowhere and the vault step would skip for the wrong reason.
+**Every script call in this file is written as `${CLAUDE_SKILL_DIR}/scripts/…`.** Claude Code
+substitutes `${CLAUDE_SKILL_DIR}` with this skill's own directory when the skill loads, so the
+commands below arrive already absolute. It is a load-time substitution, not a shell variable —
+never re-type these paths by hand and never write them relative to the working directory. The
+skill is invoked from other repos far more often than from prompt-library itself, so a path like
+`.claude/skills/expand-prompt/…` would resolve nowhere and the vault step would skip for the wrong
+reason.
 
 ## 1. Load the base prompt — first, always
 
@@ -107,7 +110,7 @@ The vault is reached through the **Obsidian Local REST API**, never through a fi
 it first:
 
 ```bash
-"$SKILL_DIR/scripts/obsidian-put.sh" --probe   # SKILL_DIR = this skill's base directory
+${CLAUDE_SKILL_DIR}/scripts/obsidian-put.sh --probe
 ```
 
 | Probe result | What to do |
@@ -122,14 +125,15 @@ so in one line and move on.
 To write, render the note to a temp file and PUT it:
 
 ```bash
-"$SKILL_DIR/scripts/obsidian-put.sh" \
+${CLAUDE_SKILL_DIR}/scripts/obsidian-put.sh \
   "0 - INBOX/Expanded Prompt - <short descriptive title>.md" "$TMPFILE"
 ```
 
 The path is **vault-relative** — `0 - INBOX/…`, never a host filesystem path. The script handles URL
-encoding, the self-signed certificate, and resolving `OBSIDIAN_LOCAL_REST_API_KEY` from the
-environment or from `get-secret.sh` on `PATH` (the machine-ops secrets rail). It never reaches into
-another repo's checkout to find the rail; if neither source answers, it skips. Honor
+encoding, the self-signed certificate, and resolving `OBSIDIAN_LOCAL_REST_API_KEY` — from the
+environment, else from `get-secret.sh` on `PATH` (the machine-ops secrets rail), else from a
+resolver named by `$GET_SECRET`. It never reaches into another repo's checkout to find the rail;
+if no source answers, it skips. Honor
 `$OBSIDIAN_INBOX` as the folder if it is set; otherwise use `0 - INBOX`.
 
 The note body is the planning copy from step (a) with Obsidian frontmatter on top:
@@ -150,7 +154,7 @@ one you know never got there.
 After the save step, append one line to the run log:
 
 ```bash
-"$SKILL_DIR/scripts/log-run.sh" <mode> <revision-rounds>
+${CLAUDE_SKILL_DIR}/scripts/log-run.sh <mode> <revision-rounds>
 ```
 
 - `<mode>` — `default`, `grillme`, `audit`, or `tighten`: whichever § 3 selected.
@@ -188,5 +192,5 @@ title through — that is deliberate, and the reason the log stays safe to keep 
 - **Let anyone hand-edit `references/prompt-architect.md`.** It is generated. Edit the canonical
   prompt in the prompt-library repo (https://github.com/mriechers/prompt-library/blob/main/prompts/prompt-architect.md), then run that repo's
   sync script (https://github.com/mriechers/prompt-library/blob/main/scripts/sync-base-prompt.sh).
-- **Address its own scripts from the working directory.** Always `"$SKILL_DIR/scripts/…"`, never
-  `.claude/skills/expand-prompt/scripts/…` — the second form is only true inside prompt-library.
+- **Address its own scripts from the working directory.** Always `${CLAUDE_SKILL_DIR}/scripts/…`,
+  never `.claude/skills/expand-prompt/scripts/…` — the second form is only true inside prompt-library.

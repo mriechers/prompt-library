@@ -21,13 +21,12 @@ machine-ops clone to find `get-secret.sh`. It resolves the rail by name on `PATH
 `GET_SECRET` override) and skips cleanly when absent — a dependency on an interface, not on
 another repo's layout. Pointers to files that live in this repo but not in the skill (the
 canonical prompt, the run-log schema, the sync script) became GitHub URLs, which stay true
-after the skill is vendored elsewhere. Verified with skill-ops' `verify-portability.sh`, which
-now passes; it is the gate the skill has to clear to be graduated out of the-lodge's
-superseded copy.
+after the skill is vendored elsewhere.
 
-Why it matters: the old `/expand-prompt` this one replaces rotted exactly this way — an
+Why it matters: the previous `/expand-prompt` this one replaces rotted exactly this way — an
 absolute vault path that was true on one machine and silently wrong later. A skill that
-encodes where it lives cannot survive being moved.
+encodes where it lives cannot survive being moved, and this skill is about to be distributed
+from a different repo than the one it is authored in.
 
 ### 2026-09-09 — expand-prompt skill, and its README integration
 Merged `main` into the expand-prompt branch and resolved the README conflict by
