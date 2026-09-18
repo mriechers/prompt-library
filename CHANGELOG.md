@@ -10,6 +10,24 @@ Keep entries short — but never at the cost of the reasoning.
 
 ## Repository
 
+### 2026-09-16 — expand-prompt skill: portable when invoked from another repo
+The skill addressed its own helper scripts as `.claude/skills/expand-prompt/scripts/…`, a path
+relative to the *working directory*. That is only true inside this repo; invoked from any
+other checkout (its normal use) the scripts did not resolve and the vault step skipped with a
+misleading reason. Every self-reference is now relative to the skill's base directory.
+
+Same pass, same rule: `obsidian-put.sh` no longer falls back to a hardcoded path into the
+machine-ops clone to find `get-secret.sh`. It resolves the rail by name on `PATH` (or a
+`GET_SECRET` override) and skips cleanly when absent — a dependency on an interface, not on
+another repo's layout. Pointers to files that live in this repo but not in the skill (the
+canonical prompt, the run-log schema, the sync script) became GitHub URLs, which stay true
+after the skill is vendored elsewhere.
+
+Why it matters: the previous `/expand-prompt` this one replaces rotted exactly this way — an
+absolute vault path that was true on one machine and silently wrong later. A skill that
+encodes where it lives cannot survive being moved, and this skill is about to be distributed
+from a different repo than the one it is authored in.
+
 ### 2026-09-09 — expand-prompt skill, and its README integration
 Merged `main` into the expand-prompt branch and resolved the README conflict by
 integrating the skill into the rewritten README rather than appending to it — the repo
