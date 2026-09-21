@@ -10,6 +10,29 @@ Keep entries short — but never at the cost of the reasoning.
 
 ## Repository
 
+### 2026-09-20 — Platform specs as data; Cowork's place in the git workflow
+Added `data/podcast-platform-specs.yml`, `scripts/render_platform_specs.py`, and
+`.github/workflows/platform-specs.yml`. The copywriter prompt's limits now come from one
+data file, rendered into the prompt's marked region and into `docs/podcast-platform-specs.md`.
+It's the same canonical-source, generated-copy, CI-check pattern as the index and the skill sync.
+
+Why data rather than prose: a fact-check of the original prompt found its most important
+number (Spotify, 500 characters) off by two orders of magnitude, and every "visible
+preview" figure unsourced. Nothing in the prompt showed which numbers were solid and
+which were folklore. Every record now carries a status, a source and a check date, so the
+model can say how much to trust a limit, and a correction is a one-line data edit
+instead of a prompt rewrite.
+
+The renderer is standard-library only. It parses a documented subset of YAML and rejects
+anything outside it, which keeps the zero-dependency rule. Its output never depends on
+today's date, so the drift check can't start failing just because time passed.
+
+The README also gained a "Working from Cowork and Claude Code" section. The first Cowork
+session to work here found that git can't run in the connected folder: the Cowork shell
+can't delete `.git/index.lock` and has no SSH key. That session left behind a stale lock
+file. The documented workflow is now for Cowork to commit in its own clone of `main` and
+hand over a patch, and for you to push.
+
 ### 2026-09-16 — expand-prompt skill: portable when invoked from another repo
 The skill addressed its own helper scripts as `.claude/skills/expand-prompt/scripts/…`, a path
 relative to the *working directory*. That is only true inside this repo; invoked from any
@@ -62,6 +85,38 @@ the README go stale while the headers stayed current would be an embarrassing wa
 lose the argument.
 
 ---
+
+## prompts/podcast-distribution-copywriter.md
+
+### 2026-09-20 — Added, fact-checked, with an audit mode
+New prompt, reworked from an existing podcast-copy prompt. Its platform table was
+checked claim by claim against primary sources, and these corrections landed in the data file:
+
+- **Spotify's 500-character description limit is not current.** The May 2025 delivery spec
+  exempts descriptions from its length rules, and provider support cites 60,000. The prompt's
+  advice to set up a "Spotify-specific shorter description" rested on that number and was
+  removed. No such Spotify field exists; Libsyn's per-destination override is host-side.
+- **LinkedIn About is 2,600, not 2,000.** The X Premium post limit is 25,000 on web but 4,000
+  on mobile. Facebook's 255 is the Page About field; a personal bio is 101.
+- **Every per-platform "visible preview" number was dropped.** None is documented, and the
+  only measurements (one iPhone, 2020) contradicted the prompt. The prompt now teaches the
+  behavior: the opening has to stand alone, because nobody documents where the cut falls.
+- **YouTube is the exception to "RSS wins."** A Studio edit blocks all future RSS updates to
+  that episode.
+- **RSS descriptions are 4,000 bytes, not characters** (PSP-1), so typographic punctuation costs extra.
+- **Amazon Music's 4,000 has no public source.** It's now marked `unverified`, and the
+  tagline range of 100-255 became Dovetail's documented 150.
+
+Prompt changes: every limit now has to come from the table, cited with its basis and check
+date, and a row older than 12 months gets flagged. Counting has to be done with code, or
+labeled approximate, in each platform's own unit. The biggest addition is **Audit mode**
+(`/audit`), which reviews a show's live copy: inventory, measure, test the opening, check
+known traps, compare across platforms, rank findings as Breaks, Weakens or Polish, and
+propose rewrites. Real trade-offs are offered as options rather than decided. The RSS feed
+is the preferred input, and YouTube copy is audited separately.
+
+Why an audit mode: the fact-check changed the rules under copy that's already live, and a
+show is more likely to need its existing descriptions checked than new ones written.
 
 ## prompts/prompt-architect.md
 

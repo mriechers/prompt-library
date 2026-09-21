@@ -1,0 +1,24 @@
+# Fails the build if data/podcast-platform-specs.yml was edited without re-running
+# the renderer, or if a generated copy was edited by hand. Either way, the table a
+# copywriter pastes into a Claude project can't quietly disagree with the data.
+#
+# The same run also validates the data file (required fields, allowed statuses,
+# source URLs, date format), so a malformed record fails here, not in a project.
+name: platform-specs
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Read-only: this job verifies, it never writes.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      # ubuntu-latest ships Python 3 and the script has no dependencies,
+      # so there is no setup-python or pip install step.
+      - name: Platform specs render is current
+        run: python3 scripts/render_platform_specs.py --check
