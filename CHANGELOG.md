@@ -10,6 +10,30 @@ Keep entries short — but never at the cost of the reasoning.
 
 ## Repository
 
+### 2026-09-20 — sync-base-prompt.sh: portable on BSD awk, and no longer truncates on failure
+`--check` failed on any Mac. The generated-file banner is three lines, and it reached awk as
+`-v banner="$BANNER"`. A `-v` assignment may not contain a literal newline: BSD awk — the awk
+macOS ships — rejects it with "newline in string" and exits having printed nothing. `render`
+therefore produced an empty file, the diff showed the whole committed copy as deleted, and the
+script reported DRIFT that did not exist. gawk accepts the same assignment, so CI stayed green
+and the failure only ever appeared off-CI. The banner now crosses into awk through the
+environment and is read once in `BEGIN` via `ENVIRON`, which is POSIX and behaves the same in
+both awks.
+
+The second half is the one with teeth. Write mode was `render > "$DEST"`, and the script runs
+under `set -uo pipefail` with no `-e`. The shell truncates `$DEST` when it opens the redirect,
+*before* the renderer runs — so a renderer that died left an empty tracked file behind, and
+execution continued to print `synced:` and exit 0. Silent data loss reported as success, and
+`--check`'s own failure message told you to run exactly that command. Rendering now goes to a
+temp file that is moved into place only on success; a non-zero renderer exits 2 and says the
+destination was left untouched.
+
+Why it matters: a guard that cannot run on the maintainer's own machine gets read as noise and
+worked around, and the documented way to work around this one destroyed the file the guard
+exists to protect. Verified both ways on macOS — `--check` now exits 0 against stock BSD awk,
+and with a deliberately failing awk the destination survives at full length instead of going
+to zero bytes.
+
 ### 2026-09-16 — expand-prompt skill: portable when invoked from another repo
 The skill addressed its own helper scripts as `.claude/skills/expand-prompt/scripts/…`, a path
 relative to the *working directory*. That is only true inside this repo; invoked from any
