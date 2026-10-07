@@ -62,9 +62,14 @@ BANNER="<!-- GENERATED FILE — DO NOT EDIT.
 # frontmatter when it starts on line 1 — prepending anything demotes the header
 # (last_validated, validated_against, recommended_effort) to body text, which is
 # exactly the mis-parse /review-prompt's own parsing note warns about.
+# The banner crosses into awk through the environment, not through -v. A -v
+# assignment may not contain a literal newline: BSD awk (the one macOS ships)
+# rejects it outright -- "newline in string" -- and exits 2 having printed
+# nothing. gawk accepts it, so this only ever failed off-CI, on a Mac.
 render() {
   if [ "$(head -1 "$SRC")" = "---" ]; then
-    awk -v banner="$BANNER" '
+    BANNER="$BANNER" awk '
+      BEGIN { banner = ENVIRON["BANNER"] }
       NR == 1        { print; next }                       # opening ---
       !ins && /^---[[:space:]]*$/ {                        # closing ---
         print; print ""; print banner; ins = 1; next
@@ -95,5 +100,18 @@ if [ "$MODE" = "check" ]; then
 fi
 
 mkdir -p "$(dirname "$DEST")"
-render > "$DEST"
+
+# Render to a temp file and move it into place only on success. Writing straight
+# to $DEST truncates it the instant the shell opens the redirect, so a renderer
+# that dies mid-run (see the banner note above) leaves an empty tracked file
+# behind -- and with no `set -e`, the script would still say "synced" and exit 0.
+TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
+if ! render > "$TMP"; then
+  echo "FAIL: could not render $REL_SRC (renderer exited non-zero)." >&2
+  echo "      $REL_DEST left untouched." >&2
+  exit 2
+fi
+mv "$TMP" "$DEST"
+trap - EXIT
 echo "synced: $REL_SRC -> $REL_DEST"
