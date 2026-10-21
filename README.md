@@ -22,6 +22,7 @@ instructions. Everything else here exists to keep them honest.
 
 | Prompt | What it does | Status | Last validated | Against |
 |---|---|---|---|---|
+| [Project Instructions: Treedix USB Cable Tester Reader](prompts/treedix-cable-tester.md) | Reads a photo of a Treedix USB Cable Tester Board and reports what the cable under test can and cannot do — verdict first, then every LED. | current | 2026-09-16 | Claude Sonnet 5 |
 | [Prompt Architect](prompts/prompt-architect.md) | Turns rough prompts into precise, testable instructions — expands, audits, tightens, or interrogates a prompt, but never runs it. | current | 2026-09-05 | Claude Opus 5 |
 
 <!-- END PROMPT INDEX -->
