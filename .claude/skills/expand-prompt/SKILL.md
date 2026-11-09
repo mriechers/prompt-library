@@ -7,6 +7,9 @@ description: >
   inbox when that vault is reachable. Triggers on "expand prompt", "expand this prompt",
   "improve this prompt", "prompt engineering", "/grillme", "/audit", "/tighten". NOT for
   executing the prompt it produces.
+metadata:
+  skill-ops-scope: suite
+  skill-ops-owner: mriechers/prompt-library
 ---
 
 # expand-prompt
