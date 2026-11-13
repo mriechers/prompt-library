@@ -22,6 +22,7 @@ instructions. Everything else here exists to keep them honest.
 
 | Prompt | What it does | Status | Last validated | Against |
 |---|---|---|---|---|
+| [Podcast Distribution Copywriter](prompts/podcast-distribution-copywriter.md) | Writes, audits and answers questions about podcast copy for directories, hosts, social and the web, checked against a sourced, dated table of platform limits. | current | 2026-09-20 | Claude Opus 5 |
 | [Prompt Architect](prompts/prompt-architect.md) | Turns rough prompts into precise, testable instructions — expands, audits, tightens, or interrogates a prompt, but never runs it. | current | 2026-09-05 | Claude Opus 5 |
 
 <!-- END PROMPT INDEX -->
@@ -164,6 +165,59 @@ scripts/sync-base-prompt.sh           # copy canonical -> skill
 scripts/sync-base-prompt.sh --check   # report drift, change nothing, exit 1 if stale
 ```
 
+### The podcast copywriter's platform specs
+
+Character limits change far more often than the instructions for writing to them, so
+[`prompts/podcast-distribution-copywriter.md`](prompts/podcast-distribution-copywriter.md)
+doesn't hold its numbers directly. They live in one data file,
+[`data/podcast-platform-specs.yml`](data/podcast-platform-specs.yml), where every record
+carries a **status** (`documented`, `secondary`, `convention`, `unverified`), a source URL,
+and the date it was last checked.
+[`scripts/render_platform_specs.py`](scripts/render_platform_specs.py) renders that file
+into two places: the marked region at the end of the prompt, so the prompt stays
+self-contained when pasted, and
+[`docs/podcast-platform-specs.md`](docs/podcast-platform-specs.md), a standalone copy for
+a Claude project's knowledge.
+
+```bash
+python3 scripts/render_platform_specs.py           # validate the data, rewrite both outputs
+python3 scripts/render_platform_specs.py --check   # report drift, change nothing, exit 1 if stale
+```
+
+To update a limit, edit one record, set its `verified` date to today, re-run the script,
+and add a CHANGELOG line. You don't touch the prompt's instructions at all.
+[`.github/workflows/platform-specs.yml`](.github/workflows/platform-specs.yml) runs
+`--check`, so a hand-edited table or a forgotten re-render fails the build.
+
+The render never includes today's date. If it did, the drift check would start failing by
+itself as time passed. The prompt tells the model to judge staleness when it reads the table.
+
+---
+
+## Working from Cowork and Claude Code
+
+This repo is the shared place where prompts get written and refined, whether the agent
+is Claude Code on the Mac, `@claude` on GitHub, or a Cowork session. They all follow the
+same conventions: prompts in `prompts/`, generated regions never hand-edited, a CHANGELOG
+entry for every change. What differs is who can run git:
+
+| Agent | Edits files | Commits | Pushes |
+|---|---|---|---|
+| Claude Code (local) | yes | yes | yes, with your SSH key |
+| `@claude` on GitHub | yes | yes, on a PR branch | yes |
+| Cowork session | yes | in its own cloud clone | **no**: hands you a patch |
+
+A Cowork session can read and write this folder on the Mac, but it can't run git in it.
+Git has to create and delete `.git/index.lock` on every write, the Cowork shell can't
+delete files in connected folders by default, and it has no access to your SSH key. So
+Cowork works in its own clone of `main`, commits there, and writes a `git am`-ready patch
+into this folder, and you push. If a stray `.git/index.lock` ever blocks git
+here, it's left over from a Cowork session. Delete it: `rm .git/index.lock`.
+
+The Claude project called Prompt Re-Writer should hold the current text of
+`prompts/prompt-architect.md` in its custom instructions. This repo is canonical, and
+the project is a copy.
+
 ---
 
 ## Repo layout
@@ -171,6 +225,9 @@ scripts/sync-base-prompt.sh --check   # report drift, change nothing, exit 1 if 
 ```
 prompts/                          the prompts themselves, one file each
   prompt-architect.md             canonical — edit this one
+  podcast-distribution-copywriter.md   specs table at the end is GENERATED
+data/
+  podcast-platform-specs.yml      the copywriter's platform limits — edit these
 .claude/commands/                 slash commands, one file per command
   review-prompt.md                -> /review-prompt
 .claude/skills/expand-prompt/     the expand-prompt skill
@@ -180,11 +237,14 @@ prompts/                          the prompts themselves, one file each
 scripts/
   generate_prompt_index.py        builds the index table in this README
   sync-base-prompt.sh             copies the canonical prompt into the skill
+  render_platform_specs.py        renders the specs data into the prompt + docs
 .github/workflows/
   prompt-index.yml                index check + auto-regenerate
   base-prompt-sync.yml            skill-copy drift check
+  platform-specs.yml              specs render drift check + data validation
 docs/
   run-log-schema.md               the shared format for run logs
+  podcast-platform-specs.md       GENERATED reference copy of the specs
 CHANGELOG.md                      what changed in each prompt, and why
 ```
 
@@ -198,5 +258,7 @@ CHANGELOG.md                      what changed in each prompt, and why
 3. Write a one-line `description`. It's the only thing most readers will see.
 4. **If you edited `prompts/prompt-architect.md`, run `scripts/sync-base-prompt.sh`**
    and commit the regenerated copy. CI fails without it.
-5. Add a CHANGELOG entry saying what the prompt is for, or what changed and why.
-6. Commit. The index table updates itself.
+5. **If you edited `data/podcast-platform-specs.yml`, run
+   `python3 scripts/render_platform_specs.py`** and commit both regenerated files.
+6. Add a CHANGELOG entry saying what the prompt is for, or what changed and why.
+7. Commit. The index table updates itself.
